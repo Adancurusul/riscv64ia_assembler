@@ -26,12 +26,13 @@ unsigned int a = 0x800 >> 11 & 0b1111;
 #define ADD(RD, RS1, RS2) R_TYPE(0b0000000, (RS2), (RS1), 0b000, (RD), 0b0110011)
 #define ADDI(RD, RS1, IMM12) I_TYPE((IMM12), (RS1), 0b000, (RD), 0b0010011)
 #define SLTI(RD, RS1, IMM12) I_TYPE((IMM12), (RS1), 0b010, (RD), 0b0010011)
+#define SLTIU(RD, RS1, IMM12) I_TYPE((IMM12), (RS1), 0b011, (RD), 0b0010011)
 #define ANDI(RD, RS1, IMM12) I_TYPE((IMM12), (RS1), 0b111, (RD), 0b0010011)
 #define ORI(RD, RS1, IMM12) I_TYPE((IMM12), (RS1), 0b110, RD, 0b0010011)
 #define XORI(RD, RS1, IMM12) I_TYPE(IMM12, RS1, 0b100, RD, 0b0010011)
 #define SLLI(RD, RS1, IMM12) I_TYPE(IMM12 & 0x3f, RS1, 0b001, RD, 0b0010011)
 #define SRLI(RD, RS1, IMM12) I_TYPE(IMM12 & 0x3f, RS1, 0b101, RD, 0b0010011)
-#define SRAI(RD, RS1, IMM12) I_TYPE((IMM12 & 0x3f) | 0x400, RS1, 0b101, rd, 0b0010011)
+#define SRAI(RD, RS1, IMM12) I_TYPE((IMM12 & 0x3f) | 0x400, RS1, 0b101, RD, 0b0010011)
 #define JAL(RD, LABLE) J_TYPE(LABLE, RD, 0b1101111)
 #define JLAR(RD, RS1, IMM12) I_TYPE(IMM2, RS1, 0b000, RD, 0b1100111)
 #define BEQ(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b000, 0b1100011)
@@ -55,7 +56,7 @@ unsigned int a = 0x800 >> 11 & 0b1111;
 #define ADDIW(RD, RS1, IMM12) I_TYPE(IMM12, RS1, 0b000, RD, 0b0011011)
 #define SLLIW(RD, RS1, IMM12) I_TYPE(IMM12 & 0x3f, RS1, 0b001, RD, 0b0011011)
 #define SRLIW(RD, RS1, IMM12) I_TYPE(IMM12 & 0x3f, RS1, 0b101, RD, 0b0011011)
-#define SRAIW(RD, RS1, IMM12) I_TYPE((IMM12 & 0x3f) | 0x400, RS1, 0b101, rd, 0b0011011)
+#define SRAIW(RD, RS1, IMM12) I_TYPE((IMM12 & 0x3f) | 0x400, RS1, 0b101, RD, 0b0011011)
 #define ADDW(RD, RS1, RS2) R_TYPE(0b0000000, RS2, RS1, 0b000, RD, 0b0111011)
 #define SUBW(RD, RS1, IMM12) R_TYPE(0b0100000, RS2, RS1, 0b000, RD, 0b0111011)
 #define SLLW(RD, RS1, IMM12) R_TYPE(0b0000000, RS2, RS1, 0b001, RD, 0b0111011)
@@ -99,7 +100,8 @@ unsigned int a = 0x800 >> 11 & 0b1111;
 #define SRET() 0b00010000001000000000000001110011
 
 unsigned int transform_function[] = {};
-
+CORE_DATA immnow;
+CORE_DATA renow;
 //static INSTRUCTIONS instruction_now = 0;
 
 typedef struct
@@ -130,8 +132,10 @@ static INSTRUCTIONS instruction_now = 0;
 static CORE_DATA token_now;
 static unsigned int r1_now, r2_now, rs1_now, rs2_now, rd_now, imm_now;
 static unsigned int RD, IMM12, IMM20, RS1, RS2;
+static int B_TYPE_OFFSET;
 //linenum 用于计算地址，发现为操作符时linenum加一
-
+unsigned binary_now;
+int error_line;
 static CORE_DATA if_one_char()
 {
     switch (*ptr)
@@ -161,7 +165,15 @@ static CORE_DATA get_next_token()
     {
         return END;
     }
-    if (if_one_char())
+    if (*ptr == ';')
+    {
+        while (!(*ptr == '\n'))
+        {
+            nextptr = ptr + 1;
+        }
+        return NEXTLINE;
+    }
+    else if (if_one_char())
     {
         nextptr = ptr + 1;
         return if_one_char();
@@ -190,8 +202,9 @@ static CORE_DATA get_next_token()
                 {
                     state = NUM16;
                 }
-                if(i>0){
-                    nextptr = ptr+i;
+                if (i > 0)
+                {
+                    nextptr = ptr + i;
                     DEBUGPRINT("get an imm");
                     return state;
                 }
@@ -298,113 +311,115 @@ void do_transform()
 }
 static void r_type_handler()
 {
-    RD = atio(ptr + 1);
+    RD = atoi(ptr + 1);
     accept_token(REGISTER);
 
     DEBUGPRINT("RD NOW: %d\n", RD);
     accept_token(COMMA);
-    RS1 = atio(ptr + 1);
+    RS1 = atoi(ptr + 1);
     accept_token(REGISTER);
 
     DEBUGPRINT("RS1 NOW: %d\n", RS1);
     accept_token(COMMA);
-    CORE_DATA t_now = search_token();
-    if(t_now==REGISTER){
-    RS2 = atio(ptr + 1);
-    accept_token(REGISTER);
+    renow = search_token();
+    if (renow == REGISTER)
+    {
+        RS2 = atoi(ptr + 1);
+        accept_token(REGISTER);
     }
-    else if(t_now==LEFTBRACKET){
+    else if (renow == LEFTBRACKET)
+    {
         accept_token(LEFTBRACKET);
-        RS2 = atio(ptr+1);
+        RS2 = atoi(ptr + 1);
         accept_token(REGISTER);
         accept_token(RIGHTBRACKET);
     }
     DEBUGPRINT("RS2 NOW: %d\n", RS2);
-    
+
     accept_token(NEXTLINE);
     linenum++;
     switch (instruction_now)
     {
     case ADD:
-        int bi = ADD(RD, RS1, RS2);
+        binary_now = ADD(RD, RS1, RS2);
         break;
     case ADDW:
-        int bi = ADDW(RD, RS1, RS2);
+        binary_now = ADDW(RD, RS1, RS2);
         break;
     case SUBW:
-        int bi = SUBW(RD, RS1, RS2);
+        binary_now = SUBW(RD, RS1, RS2);
         break;
     case SLLW:
-        int bi = SLLW(RD, RS1, RS2);
+        binary_now = SLLW(RD, RS1, RS2);
         break;
     case SRLW:
-        int bi = SRLW(RD, RS1, RS2);
+        binary_now = SRLW(RD, RS1, RS2);
         break;
     case SRAW:
-        int bi = SRAW(RD, RS1, RS2);
+        binary_now = SRAW(RD, RS1, RS2);
         break;
     case AND:
-        int bi = AND(RD, RS1, RS2);
+        binary_now = AND(RD, RS1, RS2);
         break;
     case AMOADD_D:
-        int bi = AMOADD_D(RD, RS1, RS2);
+        binary_now = AMOADD_D(RD, RS1, RS2);
         break;
     case AMOADD_W:
-        int bi = AMOADD_W(RD, RS1, RS2);
+        binary_now = AMOADD_W(RD, RS1, RS2);
         break;
     case AMOMAX_D:
-        int bi = AMOMAX_D(RD, RS1, RS2);
+        binary_now = AMOMAX_D(RD, RS1, RS2);
         break;
     case AMOMAX_W:
-        int bi = AMOMAX_W(RD, RS1, RS2);
+        binary_now = AMOMAX_W(RD, RS1, RS2);
         break;
     case AMOMIN_D:
-        int bi = AMOMIN_D(RD, RS1, RS2);
+        binary_now = AMOMIN_D(RD, RS1, RS2);
         break;
     case AMOMIN_W:
-        int bi = AMOMIN_W(RD, RS1, RS2);
+        binary_now = AMOMIN_W(RD, RS1, RS2);
         break;
     case AMOMAXU_D:
-        int bi = AMOMAXU_D(RD, RS1, RS2);
+        binary_now = AMOMAXU_D(RD, RS1, RS2);
         break;
     case AMOMAXU_W:
-        int bi = AMOMAXU_W(RD, RS1, RS2);
+        binary_now = AMOMAXU_W(RD, RS1, RS2);
         break;
     case AMOMINU_D:
-        int bi = AMOMINU_D(RD, RS1, RS2);
+        binary_now = AMOMINU_D(RD, RS1, RS2);
         break;
     case AMOMINU_W:
-        int bi = AMOMINU_W(RD, RS1, RS2);
+        binary_now = AMOMINU_W(RD, RS1, RS2);
         break;
     case AMOOR_D:
-        int bi = AMOOR_D(RD, RS1, RS2);
+        binary_now = AMOOR_D(RD, RS1, RS2);
         break;
     case AMOOR_W:
-        int bi = AMOOR_W(RD, RS1, RS2);
+        binary_now = AMOOR_W(RD, RS1, RS2);
         break;
     case AMOSWAP_D:
-        int bi = AMOSWAP_D(RD, RS1, RS2);
+        binary_now = AMOSWAP_D(RD, RS1, RS2);
         break;
     case AMOSWAP_W:
-        int bi = AMOSWAP_W(RD, RS1, RS2);
+        binary_now = AMOSWAP_W(RD, RS1, RS2);
         break;
     case AMOXOR_D:
-        int bi = AMOXOR_D(RD, RS1, RS2);
+        binary_now = AMOXOR_D(RD, RS1, RS2);
         break;
     case AMOXOR_W:
-        int bi = AMOXOR_W(RD, RS1, RS2);
+        binary_now = AMOXOR_W(RD, RS1, RS2);
         break;
     case LR_D:
-        int bi = LR_D(RD, RS1, RS2);
+        binary_now = LR_D(RD, RS1, RS2);
         break;
     case LR_W:
-        int bi = LR_W(RD, RS1, RS2);
+        binary_now = LR_W(RD, RS1, RS2);
         break;
     case SC_D:
-        int bi = SC_D(RD, RS1, RS2);
+        binary_now = SC_D(RD, RS1, RS2);
         break;
     case SC_W:
-        int bi = SC_W(RD, RS1, RS2);
+        binary_now = SC_W(RD, RS1, RS2);
         break;
     default:
         DEBUGPRINT("nothing\n");
@@ -413,35 +428,169 @@ static void r_type_handler()
 }
 static void u_type_handler()
 {
-    RD = atio(ptr + 1);
+    RD = atoi(ptr + 1);
     accept_token(REGISTER);
-    
+
     DEBUGPRINT("RD NOW: %d\n", RD);
     accept_token(COMMA);
-    RS1 = atio(ptr + 1);
-    accept_token(REGISTER);
-    
-    DEBUGPRINT("RS1 NOW: %d\n", RS1);
-    accept_token(COMMA);
-    CORE_DATA immnow = search_token();
-    if(immnow == NUM16){
-        IMM12=htoi(ptr);
+    immnow = search_token();
+    if (immnow == NUM16)
+    {
+        IMM20 = htoi(ptr);
     }
-    else if(immnow==NUM10){
-        IMM12=atoi(ptr);
+    else if (immnow == NUM10)
+    {
+        IMM20 = atoi(ptr);
     }
-    else if(immnow==LEFTBRACKET)
-    RS2 = atio(ptr + 1);
-    DEBUGPRINT("RS2 NOW: %d\n", RS2);
     accept_token(NEXTLINE);
+    DEBUGPRINT("IMM20\n");
     linenum++;
-   // switch (instruction_now)
+
+    switch (instruction_now)
+    {
+    case LUI:
+        binary_now = LUI(RD, IMM20);
+        break;
+    case AUIPC:
+        binary_now = AUIPC(RD, IMM20);
+        break;
+    default:
+        DEBUGPRINT("NOTHING\n");
+        break;
+    }
 }
 static void i_type_handler()
 {
+    RD = atoi(ptr + 1);
+    DEBUGPRINT("RD NOW: %d\n", RD);
+    accept_token(REGISTER);
+    accept_token(COMMA);
+    immnow = search_token();
+    if (immnow == REGISTER)
+    {
+        RS1 = atoi(ptr + 1);
+        accept_token(REGISTER);
+        accept_token(COMMA);
+        immnow = search_token();
+        if (immnow == NUM16)
+        {
+            IMM12 = htoi(ptr);
+            accept_token(NUM16);
+        }
+        else if (immnow == NUM10)
+        {
+            IMM12 = atoi(ptr);
+
+            accept_token(NUM10);
+        }
+        else
+        {
+            DEBUGPRINT("no num found\n");
+        }
+        accept_token(NEXTLINE);
+    }
+    else if (immnow == NUM16)
+    {
+        IMM12 = htoi(ptr + 1);
+        accept_token(NUM16);
+        accept_token(LEFTBRACKET);
+        RS1=atoi(ptr+1);
+        accept_token(REGISTER);
+        accept_token(RIGHTBRACKET);
+        accept_token(NEXTLINE);
+    }
+    else if (immnow == NUM10)
+    {
+        IMM12 = atoi(ptr + 1);
+        accept_token(NUM16);
+        accept_token(LEFTBRACKET);
+        RS1=atoi(ptr+1);
+        accept_token(REGISTER);
+        accept_token(RIGHTBRACKET);
+        accept_token(NEXTLINE);
+    }
+    else{
+        DEBUGPRINT("nothing found\n");
+        
+    }
+    linenum++;
+
+
+    switch (instruction_now)
+    {
+        case ADDI:
+        binary_now = ADDI(RD,RS1,IMM12);
+        break;
+        case SLTI:
+        binary_now = SLTI(RD,RS1,IMM12);
+        break;
+        case SLTIU:
+        binary_now = SLTIU(RD,RS1,IMM12);
+        break;
+        case ANDI:
+        binary_now = ANDI(RD,RS1,IMM12);
+        break;
+        case ORI:
+        binary_now = ORI(RD,RS1,IMM12);
+        break;
+        case SLLI:
+        binary_now = SLLI(RD,RS1,IMM12);
+        break;
+        case SRLI:
+        binary_now = SRLI(RD,RS1,IMM12);
+        break;
+        case SRAI:
+        binary_now = SRAI(RD,RS1,IMM12);
+        break;
+        case LB:
+        binary_now = LB(RD,RS1,IMM12);
+        break;
+        case LBU:
+        binary_now = LBU(RD,RS1,IMM12);
+        break;
+        case LH:
+        binary_now = LH(RD,RS1,IMM12);
+        break;
+        case LHU:
+        binary_now = LHU(RD,RS1,IMM12);
+        break;
+        case LW:
+        binary_now = LW(RD,RS1,IMM12);
+        break;
+        case LWU:
+        binary_now = LWU(RD,RS1,IMM12);
+        break;
+        case LD:
+        binary_now = LD(RD,RS1,IMM12);
+        break;
+        case ADDIW:
+        binary_now = ADDIW(RD,RS1,IMM12);
+        break;
+        case SLLIW:
+        binary_now = SLLIW(RD,RS1,IMM12);
+        break;
+        case SRLIW:
+        binary_now = SRLIW(RD,RS1,IMM12);
+        break;
+        case SRAIW:
+        binary_now = SRAIW(RD,RS1,IMM12);
+        break;
+    
+    default:
+    DEBUGPRINT("nothing i_type\n");
+        break;
+    }
+
+
+
+
+
 }
 static void b_type_handler()
 {
+    if(get_ge<0){
+        
+    }
 }
 static void s_type_handler()
 {
