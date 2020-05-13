@@ -10,7 +10,7 @@
 #define TRANS_RD(RD) RD
 #define TRANS_RS(RS) RS
 #define TRANS_CSR(CSR) CSR
-unsigned int a = 0x800 >> 11 & 0b1111;
+//unsigned int a = 0x800 >> 11 & 0b1111;
 #define R_TYPE(FUNCT7, RS2, RS1, FUNCT3, RD, OPCODE) (0x00) | (OPCODE) | ((TRANS_RD(RD)) << 7) | ((FUNCT3) << 12) | ((TRANS_RS(RS1)) << 15) | ((TRANS_RS(RS2)) << 20) | ((FUNCT7) << 25)
 #define I_TYPE(IMM12, RS1, FUNCT3, RD, OPCODE) (0x00) | (OPCODE) | ((TRANS_RD(RD)) << 7) | ((FUNCT3) << 12) | ((TRANS_RS(RS1)) << 15) | ((IMM12) << 20)
 #define S_TYPE(IMM12, RS2, RS1, FUNCT3, OPCODE) (0x00)|(OPCODE)|(IMM12&0xf)<<7|FUNCT3<<12|TRANS_RS(RS1)<<15|TRANS_RS(RS2)<<20|((IMM12>>4)<<25
@@ -37,11 +37,11 @@ unsigned int a = 0x800 >> 11 & 0b1111;
 #define JLAR(RD, RS1, IMM12) I_TYPE(IMM2, RS1, 0b000, RD, 0b1100111)
 #define BEQ(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b000, 0b1100011)
 //#define BEQZ(RS1,RS2,LABLE)
-#define BNE(RS1, RS2, LABLE) B_TYPE(LABEL, RS2, RS1, 0b001, 0b1100011)
-#define BLT(RS1, RS2, LABLE) B_TYPE(LABEL, RS2, RS1, 0b100, 0b1100011)
-#define BLTU(RS1, RS2, LABLE) B_TYPE(LABEL, RS2, RS1, 0b110, 0b1100011)
-#define BGE(RS1, RS2, LABLE) B_TYPE(LABEL, RS2, RS1, 0b101, 0b1100011)
-#define BGEU(RS1, RS2, LABLE) B_TYPE(LABEL, RS2, RS1, 0b111, 0b1100011)
+#define BNE(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b001, 0b1100011)
+#define BLT(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b100, 0b1100011)
+#define BLTU(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b110, 0b1100011)
+#define BGE(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b101, 0b1100011)
+#define BGEU(RS1, RS2, LABLE) B_TYPE(LABLE, RS2, RS1, 0b111, 0b1100011)
 #define SB(RS2, RS1, OFFSET) S_TYPE(OFFSET, RS2, RS1, 0b000, 0b0100011)
 #define SH(RS2, RS1, OFFSET) S_TYPE(OFFSET, RS2, RS1, 0b001, 0b0100011)
 #define SW(RS2, RS1, OFFSET) S_TYPE(OFFSET, RS2, RS1, 0b010, 0b0100011)
@@ -99,7 +99,9 @@ unsigned int a = 0x800 >> 11 & 0b1111;
 #define MRET() 0b00110000001000000000000001110011
 #define SRET() 0b00010000001000000000000001110011
 
-unsigned int transform_function[] = {};
+
+;
+int transform_function[] = {};
 CORE_DATA immnow;
 CORE_DATA renow;
 //static INSTRUCTIONS instruction_now = 0;
@@ -494,7 +496,7 @@ static void i_type_handler()
         IMM12 = htoi(ptr + 1);
         accept_token(NUM16);
         accept_token(LEFTBRACKET);
-        RS1=atoi(ptr+1);
+        RS1 = atoi(ptr + 1);
         accept_token(REGISTER);
         accept_token(RIGHTBRACKET);
         accept_token(NEXTLINE);
@@ -504,100 +506,176 @@ static void i_type_handler()
         IMM12 = atoi(ptr + 1);
         accept_token(NUM16);
         accept_token(LEFTBRACKET);
-        RS1=atoi(ptr+1);
+        RS1 = atoi(ptr + 1);
         accept_token(REGISTER);
         accept_token(RIGHTBRACKET);
         accept_token(NEXTLINE);
     }
-    else{
+    else
+    {
         DEBUGPRINT("nothing found\n");
-        
     }
     linenum++;
 
-
     switch (instruction_now)
     {
-        case ADDI:
-        binary_now = ADDI(RD,RS1,IMM12);
+    case ADDI:
+        binary_now = ADDI(RD, RS1, IMM12);
         break;
-        case SLTI:
-        binary_now = SLTI(RD,RS1,IMM12);
+    case SLTI:
+        binary_now = SLTI(RD, RS1, IMM12);
         break;
-        case SLTIU:
-        binary_now = SLTIU(RD,RS1,IMM12);
+    case SLTIU:
+        binary_now = SLTIU(RD, RS1, IMM12);
         break;
-        case ANDI:
-        binary_now = ANDI(RD,RS1,IMM12);
+    case ANDI:
+        binary_now = ANDI(RD, RS1, IMM12);
         break;
-        case ORI:
-        binary_now = ORI(RD,RS1,IMM12);
+    case ORI:
+        binary_now = ORI(RD, RS1, IMM12);
         break;
-        case SLLI:
-        binary_now = SLLI(RD,RS1,IMM12);
+    case SLLI:
+        binary_now = SLLI(RD, RS1, IMM12);
         break;
-        case SRLI:
-        binary_now = SRLI(RD,RS1,IMM12);
+    case SRLI:
+        binary_now = SRLI(RD, RS1, IMM12);
         break;
-        case SRAI:
-        binary_now = SRAI(RD,RS1,IMM12);
+    case SRAI:
+        binary_now = SRAI(RD, RS1, IMM12);
         break;
-        case LB:
-        binary_now = LB(RD,RS1,IMM12);
+    case LB:
+        binary_now = LB(RD, RS1, IMM12);
         break;
-        case LBU:
-        binary_now = LBU(RD,RS1,IMM12);
+    case LBU:
+        binary_now = LBU(RD, RS1, IMM12);
         break;
-        case LH:
-        binary_now = LH(RD,RS1,IMM12);
+    case LH:
+        binary_now = LH(RD, RS1, IMM12);
         break;
-        case LHU:
-        binary_now = LHU(RD,RS1,IMM12);
+    case LHU:
+        binary_now = LHU(RD, RS1, IMM12);
         break;
-        case LW:
-        binary_now = LW(RD,RS1,IMM12);
+    case LW:
+        binary_now = LW(RD, RS1, IMM12);
         break;
-        case LWU:
-        binary_now = LWU(RD,RS1,IMM12);
+    case LWU:
+        binary_now = LWU(RD, RS1, IMM12);
         break;
-        case LD:
-        binary_now = LD(RD,RS1,IMM12);
+    case LD:
+        binary_now = LD(RD, RS1, IMM12);
         break;
-        case ADDIW:
-        binary_now = ADDIW(RD,RS1,IMM12);
+    case ADDIW:
+        binary_now = ADDIW(RD, RS1, IMM12);
         break;
-        case SLLIW:
-        binary_now = SLLIW(RD,RS1,IMM12);
+    case SLLIW:
+        binary_now = SLLIW(RD, RS1, IMM12);
         break;
-        case SRLIW:
-        binary_now = SRLIW(RD,RS1,IMM12);
+    case SRLIW:
+        binary_now = SRLIW(RD, RS1, IMM12);
         break;
-        case SRAIW:
-        binary_now = SRAIW(RD,RS1,IMM12);
+    case SRAIW:
+        binary_now = SRAIW(RD, RS1, IMM12);
         break;
-    
+
     default:
-    DEBUGPRINT("nothing i_type\n");
+        DEBUGPRINT("nothing i_type\n");
         break;
     }
-
-
-
-
-
 }
 static void b_type_handler()
 {
-    if(get_ge<0){
+    RS1 = atoi(ptr + 1);
+    accept_token(REGISTER);
+    accept_token(COMMA);
+    RS2 = atoi(ptr + 1);
+    accept_token(REGISTER);
+    immnow = search_token();
+    if (immnow == NUM16)
+    {
+        B_TYPE_OFFSET = htoi(ptr);
+        if (B_TYPE_OFFSET < 0)
+        {
+            B_TYPE_OFFSET |= 0x1000;
+        }
+    }
+    else if (immnow == NUM10)
+    {
+        B_TYPE_OFFSET = atoi(ptr);
+        if (B_TYPE_OFFSET < 0)
+        {
+            B_TYPE_OFFSET |= 0x1000;
+        }
+    }
+    switch (instruction_now)
+    {
+    case BEQ:
+        binary_now = BEQ(RS1, RS2, B_TYPE_OFFSET);
+        break;
+    case BNE:
+        binary_now = BNE(RS1, RS2, B_TYPE_OFFSET);
+        break;
+    case BLT:
+        binary_now = BLT(RS1, RS2, B_TYPE_OFFSET);
+        break;
+    case BLTU:
+        binary_now = BLTU(RS1, RS2, B_TYPE_OFFSET);
+        break;
+    case BGE:
+        binary_now = BGE(RS1, RS2, B_TYPE_OFFSET);
+        break;
+    case BGEU:
+        binary_now = BGEU(RS1, RS2, B_TYPE_OFFSET);
         
+        break;
+
+    default:
+        break;
     }
 }
 static void s_type_handler()
 {
+    RS2 = atoi(ptr + 1);
+    accept_token(REGISTER);
+    accept_token(COMMA);
+    immnow = search_token();
+    if (immnow == NUM16)
+    {
+        IMM12 = htoi(ptr);
+        accept_token(NUM16);
+    }
+    else if (immnow == NUM10)
+    {
+        IMM12 = atoi(ptr);
+        accept_token(NUM10);
+    }
+    accept_token(LEFTBRACKET);
+    RS2 = atoi(ptr + 1);
+    accept_token(RIGHTBRACKET);
+    accept_token(NEXTLINE);
+    switch (instruction_now)
+    {
+    case SB :
+            binary_now = SB(RS2, RS1, IMM12));
+        break;
+    case SH :
+        binary_now = SH(RS2,RS1,IMM12));
+        break;
+    case SW:
+        binary_now = SW(RS2, RS1, IMM12));
+        break;
+    case SD:
+        binary_now = SD(RS2, RS1, IMM12));
+        break;
+
+    default:
+        DEBUGPRINT("nothing found for s type");
+        break;
+    }
 }
-static void handler()
+ void handler()
 {
     register INSTRUCTIONS instruction = search_instruction();
+    accept_token(INSTRUCTION_WORD);
 
     for (int i = 0; r_type_instructions[i] != NOTHING; i++)
     {

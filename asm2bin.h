@@ -2,11 +2,11 @@ unsigned int bin_list[];
 
 
 
-
+ void handler();
 typedef enum{
 LUI=0,AUIPC,
 ADDI,SLTI,SLTIU,ANDI,ORI,XORI,SLLI,SRLI,SRAI,
-ADD,SUB,SLT,SLTIU,AND,OR,XOR,SLL,SRL,SRA,
+ADD,SUB,SLT,AND,OR,XOR,SLL,SRL,SRA,
 JAL,JALR,BEQ,BNE,BLT,BLTU,BGE,BGEU,
 SB,SH,SW,SD,LB,LBU,LH,LHU,LW,LWU,LD,
 ADDIW,SLLIW,SRLIW,SRAIW,ADDW,SUBW,SLLW,SRLW,SRAW,
@@ -114,3 +114,5 @@ const INSTRUCTIONS b_type_instructions[]={
 const INSTRUCTIONS s_type_instructions[]={
     SB,SH,SW,SD,
 }
+
+
